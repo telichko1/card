@@ -27,19 +27,20 @@ const ViewerPage = () => {
   }, [randomQueries]);
 
   useEffect(() => {
-    const checkCard = () => {
-      const selectedCard = localStorage.getItem("selectedCard");
-      if (selectedCard) {
-        localStorage.removeItem("selectedCard");
-        const url = `https://yandex.ru/images/search?text=${encodeURIComponent(
-          selectedCard
-        )}`;
-        const link = document.createElement("a");
-        link.href = url;
-        link.style.display = "none";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const checkCard = async () => {
+      try {
+        const response = await fetch("/api/checkCard");
+        const data = await response.json();
+
+        if (data.card) {
+          setSearchQuery(data.card);
+          // Мгновенный редирект на Яндекс
+          window.location.href = `https://yandex.ru/images/search?text=${encodeURIComponent(
+            data.card
+          )}`;
+        }
+      } catch (error) {
+        console.error("Error checking card:", error);
       }
     };
 

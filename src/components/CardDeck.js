@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import "./CardDeck.css";
 
 const CardDeck = () => {
@@ -33,35 +33,41 @@ const CardDeck = () => {
   const [selectedCard, setSelectedCard] = useState(null);
   const [selectedSuit, setSelectedSuit] = useState(null);
 
-  // Проверяем localStorage при загрузке и при изменениях
-  useEffect(() => {
-    const checkLocalStorage = () => {
-      const storedCard = localStorage.getItem("selectedCard");
-      // Если карта была очищена на странице зрителя, сбрасываем выбор
-      if (!storedCard && selectedCard) {
-        setSelectedCard(null);
-      }
-    };
-
-    const interval = setInterval(checkLocalStorage, 1000);
-    return () => clearInterval(interval);
-  }, [selectedCard]);
-
   const getCardName = (card) => {
     const valueName = valueNames[card.value] || card.value;
     return `${valueName} ${suitNames[card.suit]}`;
   };
 
-  const handleCardClick = (card) => {
+  const handleCardClick = async (card) => {
     setSelectedCard(card);
     const cardName = getCardName(card);
-    localStorage.setItem("selectedCard", cardName);
+    try {
+      await fetch("/api/setCard", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ card: cardName }),
+      });
+    } catch (error) {
+      console.error("Error setting card:", error);
+    }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     setSelectedCard(null);
     setSelectedSuit(null);
-    localStorage.removeItem("selectedCard");
+    try {
+      await fetch("/api/setCard", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ card: null }),
+      });
+    } catch (error) {
+      console.error("Error resetting card:", error);
+    }
   };
 
   const handleSuitClick = (suit) => {
