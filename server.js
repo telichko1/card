@@ -20,20 +20,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Раздача статических файлов из папки build
-app.use(
-  express.static(path.join(__dirname, "build"), {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".css")) {
-        res.setHeader("Content-Type", "text/css");
-      }
-      if (filePath.endsWith(".js")) {
-        res.setHeader("Content-Type", "application/javascript");
-      }
-    },
-  })
-);
-
 // API для установки карты
 app.post("/api/setCard", (req, res) => {
   const { card } = req.body;
@@ -54,12 +40,10 @@ app.get("/api/checkCard", (req, res) => {
   }
 });
 
-// Явно обрабатываем маршрут для страницы зрителя
-app.get("/1", (req, res) => {
-  res.sendFile(path.join(__dirname, "build", "index.html"));
-});
+// Раздача статических файлов из папки build
+app.use(express.static(path.join(__dirname, "build")));
 
-// Все остальные запросы перенаправляем на index.html
+// Обработка всех остальных маршрутов
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
