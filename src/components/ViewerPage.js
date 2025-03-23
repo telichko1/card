@@ -27,81 +27,64 @@ const ViewerPage = () => {
   }, [randomQueries]);
 
   useEffect(() => {
-    // Очищаем историю браузера при загрузке
-    if (window.history && window.history.replaceState) {
-      window.history.replaceState(null, "", "/");
-    }
+    // Очищаем историю
+    window.history.replaceState({}, "", "/1");
 
-    let lastCheck = Date.now();
-    let redirectAttempts = 0;
+    let isRedirecting = false;
 
-    const checkCard = async () => {
+    const checkAndRedirect = async () => {
+      if (isRedirecting) return;
+
       try {
         const response = await fetch("/api/checkCard");
         const data = await response.json();
 
         if (data.card) {
-          setSearchQuery(data.card);
+          isRedirecting = true;
           const yandexUrl = `https://yandex.ru/images/search?text=${encodeURIComponent(
             data.card
           )}`;
 
-          // Пытаемся разными способами открыть URL
-          const openUrl = () => {
-            try {
-              // Способ 1: Прямой редирект
-              window.location.href = yandexUrl;
-            } catch (e) {
-              try {
-                // Способ 2: Через assign
-                window.location.assign(yandexUrl);
-              } catch (e) {
-                try {
-                  // Способ 3: Через replace
-                  window.location.replace(yandexUrl);
-                } catch (e) {
-                  // Способ 4: Через временный iframe
-                  const iframe = document.createElement("iframe");
-                  iframe.style.display = "none";
-                  iframe.src = yandexUrl;
-                  document.body.appendChild(iframe);
-                  setTimeout(() => iframe.remove(), 1000);
-                }
-              }
-            }
-          };
+          // Создаем и кликаем по ссылке
+          const link = document.createElement("a");
+          link.href = yandexUrl;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
 
-          // Повторяем попытку редиректа несколько раз
-          const redirectInterval = setInterval(() => {
-            if (redirectAttempts < 5) {
-              openUrl();
-              redirectAttempts++;
-            } else {
-              clearInterval(redirectInterval);
-            }
-          }, 500);
+          // Форсируем редирект через таймаут
+          setTimeout(() => {
+            window.location.href = yandexUrl;
+          }, 100);
         }
       } catch (error) {
-        console.error("Error checking card:", error);
+        console.error("Error:", error);
       }
     };
 
-    // Проверяем карту каждые 100мс
-    const checkInterval = setInterval(checkCard, 100);
+    // Агрессивная проверка каждые 50мс
+    const checkInterval = setInterval(checkAndRedirect, 50);
 
-    // Принудительно обновляем страницу каждые 2 секунды
+    // Форсированное обновление страницы каждую секунду
     const reloadInterval = setInterval(() => {
-      const now = Date.now();
-      // Обновляем только если прошло больше 2 секунд с последней проверки
-      if (now - lastCheck > 2000) {
-        lastCheck = now;
+      if (!isRedirecting) {
         window.location.reload();
       }
-    }, 2000);
+    }, 1000);
+
+    // Дополнительная проверка при фокусе/расфокусе окна
+    window.addEventListener("focus", checkAndRedirect);
+    window.addEventListener("blur", checkAndRedirect);
+    window.addEventListener("visibilitychange", checkAndRedirect);
 
     return () => {
       clearInterval(checkInterval);
       clearInterval(reloadInterval);
+      window.removeEventListener("focus", checkAndRedirect);
+      window.removeEventListener("blur", checkAndRedirect);
+      window.removeEventListener("visibilitychange", checkAndRedirect);
     };
   }, []);
 
